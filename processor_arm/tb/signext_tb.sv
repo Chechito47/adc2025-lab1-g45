@@ -36,7 +36,7 @@ module signext_tb();
             $display ("\nComienzo testbench signext\n");
         
             //LDUR positivo
-            a = 32'b11111000010_000000001_00_00000_00000; //inm = 1
+            a = 32'b11111000010_000000001_00_00000_00000; //inm9 = 1
             #1;
             if (y !== 64'b1)
                 $display ("LDUR positivo fallo, y=%0b", y);
@@ -44,22 +44,22 @@ module signext_tb();
             //LDUR negativo
             a = 32'b11111000010_111111111_00_00000_00000; //inm9 = -1, complemento a 2 del anterior
             #1;
-            if (y !== 64'sb1)
+            if (y !== -64'sh1) //s -> signado, uso - para negar el 1
                 $display ("LDUR negativo fallo, y=%0b", y);
 
             //STUR positivo
-            a = 32'b11111000000_000000010_00_00000_00000; //inm9 = 3
+            a = 32'b11111000000_000000011_00_00000_00000; //inm9 = 3
             #1;
             if (y !== 64'h3)
                 $display ("SDUR positivo fallo, y=%0b", y);
 
             //STUR negativo
-            a = 32'b11111000000_111111110_00_00000_00000; //inm9 = -3, complmento a 2 del anterior
+            a = 32'b11111000000_111111101_00_00000_00000; //inm9 = -3, complmento a 2 del anterior
             #1;
-            if (y !== 64'sh3)
+            if (y !== -64'sh3)
                 $display ("SDUR negativo fallo, y=%0b", y);                
 
-            //CBZ positivo
+            //CBZ positivo 
             a = 32'b10110100_0000000000000000101_00000; //inm19 = 5
             #1;
             if (y !== 64'h5)
@@ -68,7 +68,7 @@ module signext_tb();
             //CBZ negativo
             a = 32'b10110100_1111111111111111011_00000; //inm19 = -5, complemento a 2 del anterior
             #1;
-            if (y !== 64'sh5)
+            if (y !== -64'sh5)
                 $display ("CBZ negativo fallo, y=%0b", y);
                 
             //Instruccion ajena a la tabla
@@ -77,7 +77,7 @@ module signext_tb();
             if (y !== 64'h0)
                 $display ("Instruccion ajena a la tabla fallo, y=%0b", y);
         
-            $display("Testbench signext finalizado\n");                      
+            $display("Finalizo testbench signext\n");                      
         $finish;
     end      
 endmodule

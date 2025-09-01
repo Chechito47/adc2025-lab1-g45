@@ -96,7 +96,7 @@ module flopr_tb();
      if (q !== {{N-4{1'h0}}, 4'hA})
         $display("Error con q=0, d=5"); 
         
-        $display("Testbench flopr finalizado\n"); 
+        $display("Finalizo testbench flopr\n"); 
         $finish;
     end
 endmodule
