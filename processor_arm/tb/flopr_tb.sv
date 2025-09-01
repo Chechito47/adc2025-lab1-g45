@@ -22,7 +22,7 @@
 
 module flopr_tb();
     //Tamaño de N
-    parameter N = 64;
+    parameter N = 32;
     
     //Señales
     logic clk, rst;
@@ -45,57 +45,58 @@ module flopr_tb();
         end
  
  initial begin
-    $display("\nComienzo testbench");
+    $display("\nComienzo testbench flopr\n");
     //Valores iniciales
     rst = 1;
     d = '0; //Aca no me importa si es hexa, binario o lo que fuere
     
     @(posedge clk);
      //Ingreso un valor por cada ciclo de reloj 
-     d = 64'h1; @(posedge clk);
-     if (q !== 64'h0)
+     d = 'h1; @(posedge clk);
+     if (q !== {N{1'h0}})
         $display("Error con q=0, d=1");
         
-     d = 64'h2; @(posedge clk);
-     if (q !== 64'h0)
+     d = 'h2; @(posedge clk);
+     if (q !== {N{1'h0}})
         $display("Error con q=0, d=2");
         
-     d = 64'h3; @(posedge clk);
-     if (q !== 64'h0)
+     d = 'h3; @(posedge clk);
+     if (q !== {N{1'h0}})
         $display("Error con q=0, d=3");
         
-     d = 64'h4; @(posedge clk);
-     if (q !== 64'h0)
+     d = 'h4; @(posedge clk);
+     if (q !== {N{1'h0}})
         $display("Error con q=0, d=4");
         
-     d = 64'h5; @(posedge clk);
-     if (q !== 64'h0)
+     d = 'h5; @(posedge clk);
+     if (q !== {N{1'h0}})
         $display("Error con q=0, d=5");
  
 
     //Desactivo el reset
     rst = 0;
     
-     d = 64'h6; @(posedge clk);
-     if (q !== 64'h6)
+     d = 'h6; @(posedge clk);
+     if (q !== {{N-3{1'h0}}, 3'h6}) //'h6
         $display("Error con q=0, d=1");
         
-     d = 64'h7; @(posedge clk);
-     if (q !== 64'h7)
+     d = 'h7; @(posedge clk);
+     if (q !== {{N-3{1'h0}}, 3'h7})
         $display("Error con q=0, d=2");
         
-     d = 64'h8; @(posedge clk);
-     if (q !== 64'h8)
+     d = 'h8; @(posedge clk);
+     if (q !== {{N-4{1'h0}}, 4'h8})
         $display("Error con q=0, d=3");
         
-     d = 64'h9; @(posedge clk);
-     if (q !== 64'h9)
+     d = 'h9; @(posedge clk);
+     if (q !== {{N-4{1'h0}}, 4'h9})
         $display("Error con q=0, d=4");
         
-     d = 64'hA; @(posedge clk);
-     if (q !== 64'hA)
+     d = 'hA; @(posedge clk);
+     if (q !== {{N-4{1'h0}}, 4'hA})
         $display("Error con q=0, d=5"); 
- 
+        
+        $display("Testbench flopr finalizado\n"); 
         $finish;
     end
 endmodule
