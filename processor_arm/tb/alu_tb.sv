@@ -145,14 +145,14 @@ module alu_tb
            
            
                 
-           //Caso Overflow
+           //---Caso Overflow---
            a = 64'h7FFFFFFFFFFFFFFF; b = 1; //Valor maximo posible con 64bits
            ALUControl = 4'b0010; #1; //ALUControl en ADD
            $display("Overflow: result=%0b, zero=%b", result, zero);
            
            
            
-           //Caso zero
+           //---Caso zero---
            a = 10; b = 10; //Valores para restar
            ALUControl = 4'b0011; #1; //ALUControl en SUB
            $display("Caso zero: result=%0b, zero=%b", result, zero);
