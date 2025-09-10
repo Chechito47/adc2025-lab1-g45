@@ -110,7 +110,7 @@ module alu_tb
            //---SUB---
            //Caso positivo
            a = pos1; b = pos2;
-           ALUControl = 4'b0011; #1; //Indico AND en el ALUControl
+           ALUControl = 4'b0110; #1; //Indico AND en el ALUControl
            if (result !== (pos1 - pos2)) //Valor esperado
                 $display("SUB pos & pos fallo: result=%0b, zero=%b", result, zero);
                  
@@ -129,7 +129,7 @@ module alu_tb
            //---Pass input b---
            //Caso positivo
            a = pos1; b = pos2;
-           ALUControl = 4'b0100; #1; //Indico AND en el ALUControl
+           ALUControl = 4'b0111; #1; //Indico AND en el ALUControl
            if (result !== b) //Valor esperado
                 $display("Pass input b pos & pos fallo: result=%0b, zero=%b", result, zero);
                  

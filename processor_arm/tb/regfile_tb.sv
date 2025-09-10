@@ -3,7 +3,7 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 02.09.2025 20:36:16
+// Create Date: 09/02/2025 11:59:25 AM
 // Design Name: 
 // Module Name: regfile_tb
 // Project Name: 
@@ -21,130 +21,71 @@
 
 
 module regfile_tb();
-  // param:
-  parameter CNT_MAX_TESTS = 10000;
-  parameter N = 64;
-  
-  // señales de test
-  logic clk, reset_tb;
-  logic [N-1 : 0] rd1_expected, rd2_expected, wd3_auxiliar;
+    parameter N = 64;
 
-  int fd, error_code, cnt_tests, test_number, test_type, cnt_errors;
-  string input_file_path, line;
-
-  logic wr_en3_in[0 : CNT_MAX_TESTS];
-  logic [4 : 0] ra1_in[0 : CNT_MAX_TESTS], ra2_in[0 : CNT_MAX_TESTS], wa3_in[0 : CNT_MAX_TESTS];
-  logic [N-1 : 0] wd3_in[0 : CNT_MAX_TESTS], rd1_in[0 : CNT_MAX_TESTS], rd2_in[0 : CNT_MAX_TESTS];
-
-  // modulos:
-  logic wr_en3;
-  logic [4 : 0] ra1, ra2, wa3;
-  logic [N-1 : 0] wd3, rd1, rd2;
-
- //dut
-  regfile #(N) dut (
-      .clk(clk),
-      .wr_en3(wr_en3),
-      .read_add1(ra1),
-      .read_add2(ra2),
-      .write_add3(wa3),
-      .write_d3(wd3),
-      .read_d1(rd1),
-      .read_d2(rd2)
-  );
-
-  // clock 
-  always begin
-    clk = 1;
-    #5ns;
-    clk = 0;
-    #5ns;
-  end
-
-  initial begin
-    cnt_tests = 0;
-    test_number = 0;
-    cnt_errors = 0;
-
-    // obtener path al archivo de entrada
-    input_file_path = `__FILE__;
-    for (int i = input_file_path.len(); i >= 0; i--) begin
-      if (input_file_path[i] == "/") begin
-        input_file_path = input_file_path.substr(0, i);
-        break;
-      end
+    //Señales
+    logic clk, we3;
+    logic [4:0] ra1, ra2, wa3;
+    logic [N-1:0] wd3, rd1, rd2;
+    
+    //Instanciacion del modulo
+    regfile dut (
+        .clk(clk),
+        .we3(we3),
+        .ra1(ra1),
+        .ra2(ra2),
+        .wa3(wa3),
+        .wd3(wd3),
+        .rd1(rd1),
+        .rd2(rd2)
+    );
+    
+    //--- Generador de clock ----> ciclo 10ps = 100MHz
+    always begin
+            clk = 1; #5;
+            clk = 0; #5;
     end
+    
+    initial begin
+        $display("\nComienzo testbench regfile\n");
+        //Verifico inicializacion
+        for (int i = 0; i < 32; i++) begin //31 incluido
+            ra1 = i;
+            ra2 = i;
+            #10;    //Espero un ciclo
+            $display("REG[%0d], rd1=%0d, rd2=%0d", i, rd1, rd2);
+        end
+    
+    //--- Escribo un valor en un registro y lo leo en el mismo clock ----> REG[5]
+    we3 = 1;            //Indico que puedo escribir
+    wa3 = 5;            //Registro en el que voy a escribir
+    wd3 = {N-1{1'b1}}; //El contenido sera todos 1
+    ra1 = 5;           //Indico que registro quiero leer, ra2 no es necesario
+    #10;               //Escribo y leo en el mismo clock, si no lo pongo mostraria un valor viejo
+                       //y si lo pongo antes del ra1 veria los valores con un ciclo de retraso
+    $display("REG[5]: rd1=%h, esperado=%h", rd1, wd3);
+    
+    
+    //--- Verifico que no se altere en contenido de un registro si we=0 ---
+    //Trato de escribir sobre el registro que escribi antes
+    we3 = 0;
+    wd3 = {N-1{1'b0}};  //El contenido sera todos 0
+    #10;
+    if (rd1 !== {N-1{1'b1}})
+        $display("Error, REG[5] con we3=%0b cambio: esperado=%h, rd1=%h", we3, {N-1{1'b1}}, wd3);
+    else
+        $display("REG[5] con we3=%0b no cambio: rd1=%h", we3, rd1);
+    
+    
+    //--- Escribir valor distinto a 0 en el registro 31 ---
+    we3 = 1;
+    wa3 = 31;
+    wd3 = 'hA;
+    ra1 = 31;
+    #10;
+    $display("REG[31]: rd1=%h, esperado=0", rd1);
 
-    // abrir 
-    fd = $fopen({input_file_path, "input-files/regfile_tb_in"}, "r");
-    if (fd === 0) begin
-      $display("ERROR: no se pudo abrir archivo de entrada");
-      $stop;
+    $display("Finalizo testbench regfile\n");
+    $finish;
     end
-
-    while (!$feof(fd)) begin
-      error_code = $fgets(line, fd);
-      if (line === "" || line === "\n" || line.substr(0, 1) === "//") continue;
-      error_code = $sscanf(
-          line,
-          "%d %d %d %d %d %d %d",
-          wr_en3_in[cnt_tests],
-          ra1_in[cnt_tests],
-          ra2_in[cnt_tests],
-          wa3_in[cnt_tests],
-          wd3_in[cnt_tests],
-          rd1_in[cnt_tests],
-          rd2_in[cnt_tests]
-      );
-      cnt_tests++;
-    end
-
-    $fclose(fd);
-
-    // reset 
-    reset_tb = 1;
-    #27ns;
-    reset_tb = 0;
-  end
-
-  // bucle test
-  always @(negedge clk) begin
-    if (~reset_tb) begin
-      test_type = 0;
-
-      if (wr_en3 === 1'b1) begin
-        test_type = 1;
-        wr_en3 = 1'b0;
-      end
-
-      if ({rd1, rd2} !== {rd1_expected, rd2_expected}) begin
-        $display("Error en %s test #%d con input = { wr_en3=%b, ra1=%d, ra2=%d, wa3=%d, wd3=%d } \
-                  --> output = { rd1=%d, rd2=%d }, esperado = { rd1=%d, rd2=%d }",
-                  (test_type ? "escritura" : "lectura"),
-                  test_number, (test_type ? 1'b1 : 1'b0), ra1, ra2, wa3, wd3,
-                  rd1, rd2, rd1_expected, rd2_expected);
-        cnt_errors++;
-      end
-
-      test_number++;
-      if (test_number === cnt_tests) begin
-        $display("%d tests completados con %d errores", cnt_tests, cnt_errors);
-        #5ns;
-        $stop;
-      end
-    end
-
-    // preparar siguiente test
-    #2ns;
-    wr_en3 = wr_en3_in[test_number];
-    ra1 = ra1_in[test_number];
-    ra2 = ra2_in[test_number];
-    wa3 = wa3_in[test_number];
-    wd3 = wd3_in[test_number];
-    rd1_expected = rd1_in[test_number];
-    rd2_expected = rd2_in[test_number];
-    #2ns;
-  end
-
-
 endmodule

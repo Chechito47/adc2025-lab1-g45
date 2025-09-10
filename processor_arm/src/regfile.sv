@@ -3,7 +3,7 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 02.09.2025 20:27:05
+// Create Date: 09/02/2025 10:48:42 AM
 // Design Name: 
 // Module Name: regfile
 // Project Name: 
@@ -20,35 +20,46 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module regfile #(
-    parameter N = 64 //Ancho de palabra
-   )(
-   input logic clk, //clock
-   input logic wr_en3, // write  
-   input logic [4 : 0] read_add1, // read address 1
-   input logic [4 : 0] read_add2,   // read address 2
-   input logic [4 : 0] write_add3, // write address
-   input logic [N-1 : 0] write_d3, // write data
-   output logic [N-1:0] read_d1,  // read data 1
-   output logic read_d2
+module regfile #(parameter N = 64) (
+    //--- Señales ---
+    input logic clk, we3,               //clock, write enable
+    input logic [4:0] ra1, ra2, wa3,    //read address 1, read address 2, write address
+    input logic [N-1:0] wd3,            //write data
+    output logic [N-1:0] rd1, rd2       //read data 1, read data 2
+    
+    //clk -> para habilitar la escritura
+    //we3 -> indica si esta habilitada la escritura para wd3
+    //wa3 -> indica en que registro vamos a escribir
+    //wd3 -> el contenido que vamos a escribir
+    
+    //ra1 -> indica en que registro vamos a leer (1 de 2)
+    //ra2 -> indica en que registro vamos a leer (2 de 2)
+    //rd1 -> el contenido que vamos a leer (direccion dada por ra1)
+    //rd2 -> el contenido que vamos a leer (direccion dada por ra2) 
     );
     
-   logic [N-1:0] X[0:31];
-   
-   always_comb begin
-    read_d1 = (wr_en3 && write_add3 != 31 && write_add3 == read_add1) ? write_d3 : X[read_add1];
-    read_d2 = (wr_en3 && write_add3 != 31 && write_add3 == read_add2) ? write_d3 : X[read_add2];
-  end
-  always_ff @(posedge clk) begin
-    if (wr_en3 && write_add3 != 31) begin
-      X[write_add3] <= write_d3;
+    //--- Banco de 32 registros REGS de 64 bits cada registro --- -> Unpacked array
+    logic [N-1:0] REGS [0:31];
+    
+    //--- Inicializo registros del 0 a 30 con dicha posicion como valor ---
+    initial begin
+        integer i;          //Para el array
+        for (i = 0; i < 31; i++) begin
+            REGS[i] = i;
+        end
+        REGS[31] = 'b0;     //Registro 31(XZR) en 0 
     end
-  end
-    // Inicialización para simulación: X0..X30 = 0..30, X31 = 0
-  initial begin
-    integer i;
-    for (i = 0; i < 31; i = i + 1) X[i] = i;
-    X[31] = '0;
-  end
+    
+    //--- Escritura sincrona--- => como es sincrona dependo un flanco del clk
+    //Verifico que no sea el registro 31
+    always_ff @(posedge clk) begin
+       if (we3 && (wa3 !== 5'b11111))
+            REGS[wa3] <= wd3;   //<= porque estamos dentro de un always_ff 
+    end
+    
+    //--- Lectura asincrona --- => como es asincrona no dependo del clk
+    //Verifico que no sea el registro 31
+    assign rd1 = (ra1 == 5'b11111) ? {N{1'b0}} : REGS[ra1];
+    assign rd2 = (ra2 == 5'b11111) ? {N{1'b0}} : REGS[ra2];
 
 endmodule
