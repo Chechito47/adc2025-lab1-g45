@@ -42,9 +42,9 @@ module fetch #(parameter N = 64)(
     
     //ADDER: input -> [N-1:0] pc_in1, pc_in2; output -> [N-1:0] pc_out
     adder #(N) ADD (
-        .pc_in1(PC_out),
-        .pc_in2(64'h4),
-        .pc_out(adder_out)
+        .a(PC_out),
+        .b(64'h4),
+        .y(adder_out)
     );
     
     //MUX2: input -> s, [N-1:0] d0, d1; output [N-1:0] y
