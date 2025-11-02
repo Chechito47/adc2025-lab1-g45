@@ -30,9 +30,9 @@ module top_tb();
     begin
       dump=0; i_mclk = 0; i_reset = 1; i_sw = 1;
       #20; i_reset = 0;
-      #5000; dump = 1;
-      #100; dump = 0;
-      #20;
+      #10000; #100; dump = 1;
+      #200; dump = 0;
+      #100;
       $stop;
 	end 
 endmodule 
