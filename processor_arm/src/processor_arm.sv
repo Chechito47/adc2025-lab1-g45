@@ -17,6 +17,9 @@ module processor_arm #(parameter N = 64)
 	logic [10:0] instr;
 	logic [28:0] cnt29 = 29'd0;
 	
+	//agregado:
+	logic DM_writeEnable, DM_readEnable;
+	
 	controller 		c 			(.instr(instr), 
 									.AluControl(AluControl), 
 									.reg2loc(reg2loc), 
@@ -70,15 +73,15 @@ module processor_arm #(parameter N = 64)
 					.clkDiv (mclk));	 
 					
 
-	always_ff @(posedge mclk)
-		if (DM_addr == 64'h8008) 
-		  o_led <= DM_writeData[15:0];
+    always_ff @(posedge mclk)
+        if (DM_addr == 64'h8000) 
+            o_led <= DM_writeData[15:0];
 		
-	always_comb 		
-		if (DM_addr == 64'h8000) 
-		     dp_readData = {48'b0, i_sw};
-		else 
-		     dp_readData = DM_readData;			
+    always_comb 		
+        if (DM_addr == 64'h8008) 
+            dp_readData = {48'b0, i_sw}; 
+        else 
+            dp_readData = DM_readData;   		
 		     
      disp7seg_controller dispA(  .clk(cnt29[13]),
                                 .bcd_dig({4'h0, 4'hC, 4'hD, 4'hA}),
