@@ -7,7 +7,17 @@ module top_tb();
 
   
   // instantiate device under test
-  processor_arm  dut (i_sw,i_mclk,i_reset,o_led, dump);
+  processor_arm dut (
+	    .i_sw(i_sw),
+	    .i_mclk(i_mclk),
+	    .i_reset(i_reset),
+	    .o_led(o_led),
+	    .D0_seg(),
+	    .D1_seg(),
+	    .D0_a(),
+	    .D1_a(),
+	    .dump(dump)
+	);
     
   // generate clock
   always     // no sensitivity list, so it always executes
@@ -18,11 +28,11 @@ module top_tb();
 	 
   initial
     begin
-      dump=0;
-      i_mclk = 0; i_reset = 1; i_sw = 1;
+      dump=0; i_mclk = 0; i_reset = 1; i_sw = 1;
       #20; i_reset = 0;
-      dump = 1; 
-      #80;
+      #5000; dump = 1;
+      #100; dump = 0;
+      #20;
       $stop;
 	end 
 endmodule 
