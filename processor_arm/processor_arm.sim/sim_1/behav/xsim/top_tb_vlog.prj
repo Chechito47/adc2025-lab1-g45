@@ -1,0 +1,29 @@
+# compile verilog/system verilog design source files
+sv xil_defaultlib  \
+"../../../../src/7seg_controller.sv" \
+"../../../../src/adder.sv" \
+"../../../../src/alu.sv" \
+"../../../../src/aludec.sv" \
+"../../../../src/clkDiv.sv" \
+"../../../../src/controller.sv" \
+"../../../../src/datapath.sv" \
+"../../../../src/decode.sv" \
+"../../../../src/execute.sv" \
+"../../../../src/fetch.sv" \
+"../../../../src/flopr.sv" \
+"../../../../src/imem.sv" \
+"../../../../src/maindec.sv" \
+"../../../../src/memory.sv" \
+"../../../../src/mux2.sv" \
+"../../../../src/processor_arm.sv" \
+"../../../../src/regfile.sv" \
+"../../../../src/sf2.sv" \
+"../../../../src/signext.sv" \
+"../../../../src/writeback.sv" \
+"../../../../tb/top_tb.sv" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

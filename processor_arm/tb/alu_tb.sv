@@ -157,6 +157,23 @@ module alu_tb
            ALUControl = 4'b0011; #1; //ALUControl en SUB
            $display("Caso zero: result=%0b, zero=%b", result, zero);
            
+           
+           //---LSL (Logical Shift Left)---
+           a = 64'h0000_0000_0000_0001; 
+           b = 64'd3;                   
+           ALUControl = 4'b0011;        
+           #10;
+           $display("LSL: a=%h b=%d result=%h (esperado = 0x8)", a, b, result);
+           // CORREGIDO: 'result' en minúscula
+           
+           //---LSR (Logical Shift Right)---
+           a = 64'h0000_0000_0000_0080; 
+           b = 64'd3;                   
+           ALUControl = 4'b0100;       
+           #10;
+           $display("LSR: a=%h b=%d result=%h (esperado = 0x10)", a, b, result);
+           // CORREGIDO: 'result' en minúscula
+           
            $display ("Finalizo testbench alu\n");
         $finish;
     end
