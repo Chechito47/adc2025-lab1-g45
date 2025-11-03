@@ -55,7 +55,7 @@ module processor_arm #(parameter N = 64)
 									
 	
 	dmem 				dataMem 	(.clk(mclk), 
-									.memWrite(DM_writeEnable), 
+									.memWrite({DM_writeEnable}), 
 									.memRead(DM_readEnable), 
 									.address(DM_addr[8:3]), 
 									.writeData(DM_writeData), 

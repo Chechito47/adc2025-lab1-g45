@@ -40,7 +40,7 @@ module fetch #(parameter N = 64)(
         .q(PC_out)
     );
     
-    //ADDER: input -> [N-1:0] pc_in1, pc_in2; output -> [N-1:0] pc_out
+    //ADDER: input -> [N-1:0] a, b; output -> [N-1:0] y
     adder #(N) ADD (
         .a(PC_out),
         .b(64'h4),
