@@ -202,4 +202,30 @@ ADD XZR, XZR, XZR      //NOP antes de usar X30 y X25
 ADD XZR, XZR, XZR      //NOP antes de usar X30 y X25
 STUR X25, [X30, #-8]   //guarda X25 en X30-8
 finloop: CBZ XZR, finloop
+
+# Codigo para una luz funcionando:
+```assembly
+.text
+.org 0x0000
+// X1=1, X15=15 (del regfile)
+LSL X20, X1, X15      // X20 = 0x8000
+ADD XZR, XZR, XZR     // NOP
+ADD XZR, XZR, XZR     // NOP
+ADD XZR, XZR, XZR     // NOP
+STUR X1, [X20, #0]    // Escribir '1' en 0x8000 (LED 0)
+ADD XZR, XZR, XZR     // NOP
+ADD XZR, XZR, XZR     // NOP
+finloop:
+    CBZ XZR, finloop
+```
+ROM [0:7] ='{32'hd371c034,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000281,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hb400001f};
+```
+```
 ```

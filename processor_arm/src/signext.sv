@@ -40,6 +40,11 @@ module signext(
             //CBZ
             11'b10110100???: y = {{45{a[23]}}, a[23:5]};
             
+            //LSL - usar immr (bits 21:16)
+            11'b110_1001_1011: y = {{58{1'b0}}, (6'd64 - a[21:16])};
+            //LSR - usar imms (bits 15:10)  
+            11'b110_1001_1010: y = {{58{1'b0}}, a[15:10]};
+            
             //Resto
             default: y = 'b0;
         endcase

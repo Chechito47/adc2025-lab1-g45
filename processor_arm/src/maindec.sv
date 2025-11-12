@@ -89,11 +89,11 @@ module maindec(
                 ALUOp = 2'b10;
             end
             
-           11'b110_1001_1010,  // LSL
-           11'b110_1001_1011:  // LSR
+           11'b110_1001_1011,  // LSL
+           11'b110_1001_1010:  // LSR
             begin
                 Reg2Loc = 1'b0;
-                ALUSrc = 1'b0;
+                ALUSrc = 1'b1;
                 MemtoReg = 1'b0;
                 RegWrite = 1'b1;
                 MemRead = 1'b0;

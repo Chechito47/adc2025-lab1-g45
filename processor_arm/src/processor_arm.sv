@@ -50,7 +50,7 @@ module processor_arm #(parameter N = 64)
 									.DM_readEnable(DM_readEnable));				
 					
 					
-	imem 				instrMem (.addr(IM_address[8:2]),
+	imem 				instrMem (.addr(IM_address[9:2]),
 									.q(q));
 									
 	
@@ -73,9 +73,11 @@ module processor_arm #(parameter N = 64)
 					.clkDiv (mclk));	 
 					
 
-    always_ff @(posedge mclk)
-        if (DM_addr == 64'h8000) 
-            o_led <= DM_writeData[15:0];
+    always_ff @(posedge i_mclk)
+    if (i_reset)
+        o_led <= 16'h0000;
+    else if (DM_addr == 64'h8000 && DM_writeEnable)  // ← Agregar DM_writeEnable
+        o_led <= DM_writeData[15:0];
 		
     always_comb 		
         if (DM_addr == 64'h8008) 
