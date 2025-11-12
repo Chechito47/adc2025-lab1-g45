@@ -4,6 +4,7 @@
 - **Integrante 2: Milena Juarez**
 
 ## Ejercicios resueltos:
+- Ejercicio 1
 
 ## Cambios surgidos en base a las recomendaciones
 ### Tiempo de ejecucion de vivado
@@ -58,16 +59,21 @@ adder #(N) ADD (
 ### imem.sv
 **Objetivo**: Soportar programas mas largos:  
 ``` assembly
-//addr = 7 ya que 2^7 = 128
-//addr sirve para indicar que palabra de esas 128 va a leer, es un indice nomas
-input logic [6:0] addr
+//addr = 10 ya que 2^10 = 512
+//addr sirve para indicar que palabra de esas 512 va a leer, es un indice nomas
+input logic [8:0] addr,
+output logic [N-1:0] q
 );
+    
+//Uso unpacked arrays, ROM tiene 512 elementos(palabras en este caso) de 32bits c/u
+//Inicializo cada palabra en 0
+logic [N-1:0] ROM [0:511] = '{default: 'b0};
 ```
 Esto es debido a que el codigo con NOPS es muy largo y 64 posiciones no es suficiente.  
 ### processor_arm.sv
 **Objetivo**: Actualizar el tamaño del adder al nuevo:  
 ``` assembly
-imem instrMem (.addr(IM_address[8:2]),
+imem instrMem (.addr(IM_address[10:2]),
 			   .q(q));
 );
 ```
@@ -98,7 +104,57 @@ initial
       $stop;
 	end 
 ```
-### Codigo assembly con NOPS
+
+## Cambios surgidos por LSL y LSR
+### alu.sv
+**Objetivo**: Implementar LSL y LSR:
+```assembly
+4'b1001: result = a << b[5:0]; // LSL
+4'b1000: result = a >> b[5:0]; // LSR
+```
+### aludec.sv
+**Objetivo**: Implementar LSL y LSR:
+```assembly
+else if((aluop == 2'b10)  & (funct == 11'b11010011011)) alucontrol = 4'b1001;	//LSR
+else if((aluop == 2'b10)  & (funct == 11'b11010011010)) alucontrol = 4'b1000;	//LSL 
+```
+### maindec.sv
+**Objetivo**: Implementar LSL y LSR:
+```assembly
+11'b110_1001_1011,  // LSL
+11'b110_1001_1010:  // LSR
+begin
+	Reg2Loc = 1'b0;
+    ALUSrc = 1'b1;
+    MemtoReg = 1'b0;
+    RegWrite = 1'b1;
+    MemRead = 1'b0;
+    MemWrite = 1'b0;
+    Branch = 1'b0;
+    ALUOp = 2'b10; 
+end
+```
+### signext.sv
+**Objetivo**: Implementar LSL y LSR:
+```assembly
+//LSL - usar immr (bits 21:16)
+11'b110_1001_1011: y = {{58{1'b0}}, (6'd64 - a[21:16])};
+//LSR - usar imms (bits 15:10)  
+11'b110_1001_1010: y = {{58{1'b0}}, a[15:10]};
+```
+### processor_arm.sv
+**Objetivo**: Agregar chequeo por DM_writeEnable
+```assembly
+always_ff @(posedge i_mclk)
+    if (i_reset)
+        o_led <= 16'h0000;
+    else if (DM_addr == 64'h8000 && DM_writeEnable)
+        o_led <= DM_writeData[15:0];
+```
+## Diagrama del nuevo procesador
+![ScreenShot](Imagenes/diagrama.png)
+## Codigos
+### Codigo assembly con NOPS para testear el procesador
 **Objetivo**: Agregar NOPS para resolver los hazards.  
 Los NOPS los agregamos de a 2. En total son 40 NOPS agregados.  
 ``` assembly
@@ -204,7 +260,7 @@ STUR X25, [X30, #-8]   //guarda X25 en X30-8
 finloop: CBZ XZR, finloop
 ```
 
-# Codigo para una luz funcionando:
+### Codigo para una luz funcionando:
 ```assembly
 .text
 .org 0x0000
@@ -230,7 +286,7 @@ ROM [0:7] ='{32'hd371c034,
 32'h8b1f03ff,
 32'hb400001f};
 ```
-# Codifo para 4 luces, 2 se apagan despues de un tiempo
+### Codigo para 4 luces, 2 se apagan despues de un tiempo
 ```assembly
 .text
 .org 0x0000
@@ -358,4 +414,542 @@ finloop:
 32'h8b1f03ff,
 32'h8b1f03ff,
 32'hb400001f};
+```
+
+### Codigo usado para las luces
+El programa implementa un efecto de "onda expansiva" comienza encendiendo los leds del centro hasta llegar los de los extremos.  
+Primero se comienza con los leds 7-8 que son los del centro, luego se va haciendo una la onda:
+- LEDS 7-8
+- LEDS 6-9
+- LEDS 5-10
+- LEDS 4-11
+- LEDS 3-12
+- LEDS 2-13
+- LEDS 1-14
+- LEDS 0-15
+Al finalizar se apagan todos los leds.  
+Se hace uso principalmente de LSL y ORR.  
+El delay entre niveles está implementado mediante instrucciones NOP.  
+![ScreenShot](Imagenes/efecto_onda.png)
+El codigo es el siguiente:
+```assembly
+.text
+.org 0x0000
+
+inicio:
+// ===== INICIALIZACION =====
+LSL X20, X1, X15      //X20 = 0x8000
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 1: LEDS 7-8 (centro) =====
+LSL X21, X1, #7       //LED 7
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #8       //LED 8
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 2: LEDS 6-9 =====
+LSL X22, X1, #6       //LED 6
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #9       //LED 9
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 3: LEDS 5-10 =====
+LSL X22, X1, #5       //LED 5
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #10      //LED 10
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 4: LEDS 4-11 =====
+LSL X22, X1, #4       //LED 4
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #11       //LED 11
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 5: LEDS 3-12 =====
+LSL X22, X1, #3       //LED 3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #12       //LED 12
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 6: LEDS 2-13 =====
+LSL X22, X1, #2       //LED 2
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #13       //LED 13
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 7: LEDS 1-14 =====
+LSL X22, X1, #1       //LED 1
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #14      //LED 14
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== EXPANSION 8: LEDS 0-15 =====
+ORR X21, X21, X1      //LED 0
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #15      //LED 15
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== APAGAR TODO =====
+STUR XZR, [X20, #0]
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+//DELAY
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// ===== REPETIR =====
+B inicio
+```
+
+```
+ROM [0:236] ='{32'hD371C034,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD379FC35,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD378FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37AFC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD377FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37BFC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD376FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37CFC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD375FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37DFC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD374FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37EFC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD373FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37F3C36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD372FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa0102b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD371FC36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf800029f,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h17ffff14};
 ```
