@@ -202,6 +202,7 @@ ADD XZR, XZR, XZR      //NOP antes de usar X30 y X25
 ADD XZR, XZR, XZR      //NOP antes de usar X30 y X25
 STUR X25, [X30, #-8]   //guarda X25 en X30-8
 finloop: CBZ XZR, finloop
+```
 
 # Codigo para una luz funcionando:
 ```assembly
@@ -218,6 +219,8 @@ ADD XZR, XZR, XZR     // NOP
 finloop:
     CBZ XZR, finloop
 ```
+
+```
 ROM [0:7] ='{32'hd371c034,
 32'h8b1f03ff,
 32'h8b1f03ff,
@@ -227,5 +230,132 @@ ROM [0:7] ='{32'hd371c034,
 32'h8b1f03ff,
 32'hb400001f};
 ```
+# Codifo para 4 luces, 2 se apagan despues de un tiempo
+```assembly
+.text
+.org 0x0000
+// Preparar dirección GPIO
+LSL X20, X1, X15      // X20 = 0x8000
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// Crear patrón 1: 0x000F (LEDs 0-3)
+LSL X21, X1, #3       // X21 = 0x0008
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X1      // X21 = 0x0009
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #1       // X22 = 0x0002
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22     // X21 = 0x000B
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X22, X1, #2       // X22 = 0x0004
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X21, X21, X22     // X21 = 0x000F
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// Encender LEDs 0-3
+STUR X21, [X20, #0]
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// DELAY (~30 instrucciones)
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+// ... (agrega más NOPs si quieres más delay)
+
+// Crear patrón 2: 0x000C (solo LEDs 2-3)
+LSL X23, X1, #2       // X23 = 0x0004
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+LSL X24, X1, #3       // X24 = 0x0008
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+ORR X23, X23, X24     // X23 = 0x000C
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+// Apagar LEDs 0-1 (escribir nuevo patrón)
+STUR X23, [X20, #0]
+ADD XZR, XZR, XZR     // NOP x3
+ADD XZR, XZR, XZR
+ADD XZR, XZR, XZR
+
+finloop:
+    CBZ XZR, finloop
 ```
+
+```ROM [0:53] ='{32'hD371C034,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hd37d3c35,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa0102b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37F3C36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37E3C36,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1602b5,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000295,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37E3C37,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hD37D3C38,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'haa1802f7,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hf8000297,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'h8b1f03ff,
+32'hb400001f};
 ```
