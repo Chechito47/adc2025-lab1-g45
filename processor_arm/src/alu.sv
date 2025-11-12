@@ -34,6 +34,8 @@ module alu
             4'b0000: result = a & b;    //AND
             4'b0001: result = a | b;    //OR
             4'b0010: result = a + b;    //ADD
+            4'b1001: result = a << b[5:0]; // LSL
+            4'b1000: result = a >> b[5:0]; // LSR
             4'b0110: result = a - b;    //SUB
             4'b0111: result = b;        //Pass input b
             default: result = 'b0;      //Resto de caso

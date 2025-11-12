@@ -56,9 +56,9 @@ module execute #(parameter N = 64)(
     
     //Instancio el adder
     adder #(N) ADD (
-        .pc_in1(PC_E),
-        .pc_in2(sf2_result),
-        .pc_out(PCBranch_E)
+        .a(PC_E),
+        .b(sf2_result),
+        .y(PCBranch_E)
     );
     
     assign writeData_E = readData2_E;
